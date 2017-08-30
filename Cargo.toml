@@ -1,0 +1,6 @@
+[package]
+name = "shib-gotham"
+version = "0.1.0"
+authors = ["Shaun Mangelsdorf <s.mangelsdorf@gmail.com>"]
+
+[dependencies]
