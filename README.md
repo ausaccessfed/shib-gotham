@@ -1,16 +1,13 @@
 # shib-gotham
 
 [![Build Status][BS img]][Build Status]
-[![Dependency Status][DS img]][Dependency Status]
 [![Code Climate][CC img]][Code Climate]
 [![Coverage Status][CS img]][Code Climate]
 
 [Build Status]: https://codeship.com/projects/243002
-[Dependency Status]: https://gemnasium.com/ausaccessfed/shib-gotham
 [Code Climate]: https://codeclimate.com/github/ausaccessfed/shib-gotham
 
 [BS img]: https://img.shields.io/codeship/98b11450-6ffe-0135-3bca-16539209bb14/develop.svg
-[DS img]: https://img.shields.io/gemnasium/ausaccessfed/shib-gotham.svg
 [CC img]: https://img.shields.io/codeclimate/github/ausaccessfed/shib-gotham.svg
 [CS img]: https://img.shields.io/codeclimate/coverage/github/ausaccessfed/shib-gotham.svg
 
