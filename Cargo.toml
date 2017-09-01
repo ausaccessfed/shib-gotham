@@ -4,3 +4,8 @@ version = "0.1.0"
 authors = ["Shaun Mangelsdorf <s.mangelsdorf@gmail.com>"]
 
 [dependencies]
+log = "0.3.0"
+futures = "0.1.0"
+hyper = "0.11.0"
+gotham = { git = "https://github.com/gotham-rs/gotham.git", branch = "master" }
+gotham_derive = { git = "https://github.com/gotham-rs/gotham.git", branch = "master" }
