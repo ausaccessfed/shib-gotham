@@ -4,7 +4,7 @@ use serde::de::{Deserialize, Deserializer, Visitor, MapAccess, DeserializeSeed};
 use hyper::header::{HeaderView, Raw};
 
 use headers::HeadersDeserializationError;
-use headers::deserialize_values::{DeserializeOwned, DeserializeRef};
+use headers::deserialize_values::DeserializeValue;
 
 pub struct DeserializeHeaders<'a, Iter>
 where
@@ -84,7 +84,7 @@ where
 
         match self.current {
             Some(ref header) => {
-                let deserializer = DeserializeRef::new(header.name());
+                let deserializer = DeserializeValue::new(header.name());
                 Ok(Some(seed.deserialize(deserializer)?))
             }
             None => Ok(None),
@@ -97,7 +97,7 @@ where
     {
         match self.current {
             Some(ref header) => {
-                let deserializer = DeserializeOwned::new(header.value_string());
+                let deserializer = DeserializeValue::new(header.value_string());
                 Ok(seed.deserialize(deserializer)?)
             }
             None => unreachable!("header name but no value?"),

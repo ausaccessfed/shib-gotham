@@ -72,4 +72,38 @@ mod tests {
         let attrs: SingleAttribute = deserialize::<SingleAttribute>(&headers).unwrap();
         assert_eq!(&attrs.shared_token, value);
     }
+
+    #[derive(Deserialize, PartialEq, Debug)]
+    #[serde(rename_all = "kebab-case")]
+    enum Affiliation {
+        Faculty,
+        Student,
+        Staff,
+        Employee,
+        Member,
+        Affiliate,
+        Alum,
+        LibraryWalkIn,
+    }
+
+    #[derive(Deserialize)]
+    struct OnlyAffiliation {
+        #[serde(rename = "eduPersonAffiliation")]
+        affiliation: Affiliation,
+    }
+
+    #[test]
+    fn test_enum_attribute() {
+        let mut headers = Headers::new();
+        headers.set_raw("eduPersonAffiliation", "library-walk-in");
+
+        let attrs = deserialize::<OnlyAffiliation>(&headers).unwrap();
+        assert_eq!(attrs.affiliation, Affiliation::LibraryWalkIn);
+
+        let mut headers = Headers::new();
+        headers.set_raw("eduPersonAffiliation", "employee");
+
+        let attrs = deserialize::<OnlyAffiliation>(&headers).unwrap();
+        assert_eq!(attrs.affiliation, Affiliation::Employee);
+    }
 }
