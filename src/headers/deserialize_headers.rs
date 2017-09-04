@@ -1,7 +1,7 @@
 use std::str;
 
-use serde::de::{Deserialize, Deserializer, Visitor, MapAccess, DeserializeSeed};
-use hyper::header::{HeaderView, Raw};
+use serde::de::{Deserializer, Visitor, MapAccess, DeserializeSeed};
+use hyper::header::HeaderView;
 
 use headers::HeadersDeserializationError;
 use headers::deserialize_values::DeserializeValue;
@@ -28,7 +28,7 @@ where
 {
     type Error = HeadersDeserializationError;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
@@ -37,8 +37,8 @@ where
 
     fn deserialize_struct<V>(
         self,
-        name: &'static str,
-        fields: &'static [&'static str],
+        _name: &'static str,
+        _fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where

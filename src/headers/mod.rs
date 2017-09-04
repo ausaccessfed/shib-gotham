@@ -17,7 +17,7 @@ impl error::Error for HeadersDeserializationError {
 }
 
 impl de::Error for HeadersDeserializationError {
-    fn custom<T>(t: T) -> Self {
+    fn custom<T>(_: T) -> Self {
         unimplemented!()
     }
 }
@@ -30,11 +30,12 @@ impl fmt::Display for HeadersDeserializationError {
     }
 }
 
+#[allow(dead_code)]
 fn deserialize<T>(headers: &Headers) -> Result<T, HeadersDeserializationError>
 where
     for<'de> T: Deserialize<'de>,
 {
-    let mut deserializer = deserialize_headers::DeserializeHeaders::new(headers.iter());
+    let deserializer = deserialize_headers::DeserializeHeaders::new(headers.iter());
     T::deserialize(deserializer)
 }
 
