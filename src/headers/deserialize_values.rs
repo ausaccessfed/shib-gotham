@@ -1,11 +1,12 @@
-use serde::de::{Deserializer, DeserializeSeed, Visitor, EnumAccess, VariantAccess};
+use serde::de::{Deserializer, DeserializeSeed, Visitor, EnumAccess, VariantAccess, SeqAccess};
 
-use std::borrow::Cow;
+use std::vec::IntoIter;
+use std::ops::Deref;
 use std::marker::PhantomData;
 
 use headers::HeadersDeserializationError;
 
-pub(super) trait VisitableString<'de> {
+pub(super) trait VisitableString<'de>: Deref<Target = str> {
     fn be_visited<V>(self, visitor: V) -> Result<V::Value, HeadersDeserializationError>
     where
         V: Visitor<'de>;
@@ -102,10 +103,76 @@ where
         visitor.visit_enum(ValueEnum::new(self.value))
     }
 
+    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_seq(MultiValued::new(self.value))
+    }
+
     forward_to_deserialize_any! {
         bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes
-        byte_buf option unit unit_struct newtype_struct seq tuple
+        byte_buf option unit unit_struct newtype_struct tuple
         tuple_struct map struct
+    }
+}
+
+struct MultiValued {
+    value_iter: IntoIter<String>,
+}
+
+impl MultiValued {
+    fn new<'de, S>(value: S) -> Self
+    where
+        S: VisitableString<'de>,
+    {
+        let mut curr = None;
+
+        // For an attribute which has these three values:
+        //
+        // value1\
+        // value2\
+        // value3\
+        //
+        // ... the multi-valued attribute string is represented as:
+        //
+        // value1\;value2\;value3\
+        //
+        // This is impossible to distinguish from a single attribute value of:
+        //
+        // value1;value2;value3\
+        //
+        // This is deliberate behaviour in shib-gotham to correctly handle what we get from
+        // `mod_shib`. This exact example has a test case.
+        let iter = str::split(&value, |c| {
+            let prev = curr;
+            curr = Some(c);
+
+            match prev {
+                Some('\\') => false,
+                _ => c == ';',
+            }
+        });
+
+        let values: Vec<String> = iter.map(|s| s.replace(r"\;", ";")).collect();
+        MultiValued { value_iter: values.into_iter() }
+    }
+}
+
+impl<'de> SeqAccess<'de> for MultiValued {
+    type Error = HeadersDeserializationError;
+
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+    where
+        T: DeserializeSeed<'de>,
+    {
+        match self.value_iter.next() {
+            Some(v) => {
+                let de = DeserializeValue::new(v);
+                Ok(Some(seed.deserialize(de)?))
+            }
+            None => Ok(None),
+        }
     }
 }
 

@@ -106,4 +106,32 @@ mod tests {
         let attrs = deserialize::<OnlyAffiliation>(&headers).unwrap();
         assert_eq!(attrs.affiliation, Affiliation::Employee);
     }
+
+    #[derive(Deserialize)]
+    struct MultiValued {
+        #[serde(rename = "eduPersonEntitlement")]
+        entitlements: Vec<String>,
+    }
+
+    #[test]
+    fn test_multi_valued_attribute() {
+        let mut headers = Headers::new();
+        headers.set_raw(
+            "eduPersonEntitlement",
+            "urn:x-aaf:dev:1;urn:x-aaf:dev:2;urn:x-aaf:dev:3",
+        );
+
+        let attrs = deserialize::<MultiValued>(&headers).unwrap();
+        assert_eq!(
+            &attrs.entitlements[..],
+            &["urn:x-aaf:dev:1", "urn:x-aaf:dev:2", "urn:x-aaf:dev:3"]
+        );
+
+        let mut headers = Headers::new();
+        // `\` is used to escape the `;` characters
+        headers.set_raw("eduPersonEntitlement", r"value1\;value2\;value3\");
+
+        let attrs = deserialize::<MultiValued>(&headers).unwrap();
+        assert_eq!(&attrs.entitlements[..], &[r"value1;value2;value3\"]);
+    }
 }
