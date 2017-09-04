@@ -45,6 +45,12 @@ mod tests {
 
     use hyper::{Method, Headers};
 
+    #[test]
+    fn test_deserialize_unit() {
+        let mut headers = Headers::new();
+        deserialize::<()>(&headers).unwrap();
+    }
+
     #[derive(Deserialize)]
     struct SingleAttribute {
         #[serde(rename = "auEduPersonSharedToken")]
