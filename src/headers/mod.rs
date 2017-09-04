@@ -7,7 +7,7 @@ use serde::de::{self, Deserialize};
 use hyper::Headers;
 
 #[derive(Debug)]
-pub enum HeadersDeserializationError {
+enum HeadersDeserializationError {
 }
 
 impl error::Error for HeadersDeserializationError {

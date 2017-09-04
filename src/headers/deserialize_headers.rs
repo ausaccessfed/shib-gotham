@@ -6,7 +6,7 @@ use hyper::header::HeaderView;
 use headers::HeadersDeserializationError;
 use headers::deserialize_values::DeserializeValue;
 
-pub struct DeserializeHeaders<'a, Iter>
+pub(super) struct DeserializeHeaders<'a, Iter>
 where
     Iter: Iterator<Item = HeaderView<'a>> + 'a,
 {
