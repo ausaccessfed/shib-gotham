@@ -134,4 +134,22 @@ mod tests {
         let attrs = deserialize::<MultiValued>(&headers).unwrap();
         assert_eq!(&attrs.entitlements[..], &[r"value1;value2;value3\"]);
     }
+
+    #[derive(Deserialize)]
+    struct OptionalAttribute {
+        #[serde(rename = "displayName")]
+        display_name: Option<String>,
+    }
+
+    #[test]
+    fn test_optional_attribute() {
+        let attrs = deserialize::<OptionalAttribute>(&Headers::new()).unwrap();
+        assert!(attrs.display_name.is_none());
+
+        let mut headers = Headers::new();
+        headers.set_raw("displayName", "John Doe");
+
+        let attrs = deserialize::<OptionalAttribute>(&headers).unwrap();
+        assert_eq!(attrs.display_name.unwrap(), "John Doe");
+    }
 }
