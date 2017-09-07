@@ -9,6 +9,9 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+#[cfg(test)]
+extern crate serde_bytes;
+
 mod middleware;
 mod router;
 mod headers;

@@ -163,9 +163,22 @@ where
         }
     }
 
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_bytes(self.value.as_bytes())
+    }
+
+    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        self.deserialize_bytes(visitor)
+    }
+
     forward_to_deserialize_any! {
-        bytes
-        byte_buf unit unit_struct newtype_struct tuple
+        unit unit_struct newtype_struct tuple
         tuple_struct map struct
     }
 }

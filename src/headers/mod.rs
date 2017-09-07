@@ -47,6 +47,7 @@ mod tests {
 
     use std::collections::HashMap;
 
+    use serde_bytes;
     use hyper::{Method, Headers};
 
     #[test]
@@ -292,5 +293,25 @@ mod tests {
         assert_eq!(attrs.an_f32, 3.14159265359);
         assert_eq!(attrs.an_f64, 2.71828182846);
         assert_eq!(attrs.a_char, '\u{39e}');
+    }
+
+    #[derive(Deserialize)]
+    struct SingleAttributeBytes {
+        #[serde(with = "serde_bytes", rename = "auEduPersonSharedToken")]
+        shared_token: Vec<u8>,
+    }
+
+    #[test]
+    fn test_bytes() {
+        let value = b"BuyTkNadqZW_wYOeY4ppThkRRYE";
+
+        let mut headers = Headers::new();
+        headers.set_raw(
+            "auEduPersonSharedToken",
+            String::from_utf8(value.to_vec()).unwrap(),
+        );
+
+        let attrs = deserialize::<SingleAttributeBytes>(&headers).unwrap();
+        assert_eq!(&attrs.shared_token[..], value);
     }
 }
