@@ -72,18 +72,31 @@ macro_rules! primitive {
     }
 }
 
+macro_rules! reject {
+    {$fn:ident, $msg:expr} => {
+        fn $fn<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>
+        {
+            Err(HeadersDeserializationError::InvalidValueType { msg: $msg })
+        }
+    };
+
+    {$fn:ident, $msg:expr, ($($arg_i:ident : $arg_t:ty),*)} => {
+        fn $fn<V>(self, $($arg_i : $arg_t),*, _visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>
+        {
+            Err(HeadersDeserializationError::InvalidValueType { msg: $msg })
+        }
+    }
+}
+
 impl<'de, S> Deserializer<'de> for DeserializeValue<'de, S>
 where
     S: VisitableString<'de>,
 {
     type Error = HeadersDeserializationError;
-
-    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
@@ -206,10 +219,27 @@ where
         visitor.visit_newtype_struct(self)
     }
 
-    forward_to_deserialize_any! {
-        tuple
-        tuple_struct map struct
-    }
+    reject!(
+        deserialize_tuple,
+        "unsuitable type (tuple) for attribute value",
+        (_len: usize)
+    );
+
+    reject!(
+        deserialize_tuple_struct,
+        "unsuitable type (tuple struct) for attribute value",
+        (_name: &'static str, _len: usize)
+    );
+
+    reject!(deserialize_map, "unsuitable type (map) for attribute value");
+
+    reject!(
+        deserialize_struct,
+        "unsuitable type (struct) for attribute value",
+        (_name: &'static str, _fields: &'static [&'static str])
+    );
+
+    reject!(deserialize_any, "unsuitable type (any) for attribute value");
 }
 
 struct MultiValued {

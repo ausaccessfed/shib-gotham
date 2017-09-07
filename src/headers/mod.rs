@@ -9,6 +9,7 @@ use hyper::Headers;
 #[derive(Debug)]
 enum HeadersDeserializationError {
     InvalidTopLevelType { msg: &'static str },
+    InvalidValueType { msg: &'static str },
     InvalidState { msg: &'static str },
 }
 
