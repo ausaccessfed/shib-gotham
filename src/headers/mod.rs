@@ -11,6 +11,7 @@ enum HeadersDeserializationError {
     InvalidTopLevelType { msg: &'static str },
     InvalidValueType { msg: &'static str },
     InvalidState { msg: &'static str },
+    ParseError { source: &'static str, msg: String },
 }
 
 impl error::Error for HeadersDeserializationError {

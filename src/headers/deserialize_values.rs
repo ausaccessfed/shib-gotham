@@ -51,11 +51,12 @@ where
     }
 }
 
-fn translate_parse_error<E>(e: E) -> HeadersDeserializationError
+fn translate_parse_error<E>(source: &'static str, e: E) -> HeadersDeserializationError
 where
     E: Error,
 {
-    unimplemented!()
+    let msg = format!("{}", e);
+    HeadersDeserializationError::ParseError { source, msg }
 }
 
 macro_rules! primitive {
@@ -66,7 +67,7 @@ macro_rules! primitive {
         {
             match self.value.parse() {
                 Ok(v) => visitor.$visit_fn(v),
-                Err(e) => Err(translate_parse_error(e))
+                Err(e) => Err(translate_parse_error(stringify!($fn), e))
             }
         }
     }
