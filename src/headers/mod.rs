@@ -314,4 +314,33 @@ mod tests {
         let attrs = deserialize::<SingleAttributeBytes>(&headers).unwrap();
         assert_eq!(&attrs.shared_token[..], value);
     }
+
+    #[derive(Deserialize)]
+    struct NoValue;
+
+    #[derive(Deserialize)]
+    struct StringNewTypeStruct(String);
+
+    #[derive(Deserialize)]
+    struct MiscAttributes {
+        unit: (),
+
+        no_value: NoValue,
+
+        #[serde(rename = "auEduPersonSharedToken")]
+        shared_token: StringNewTypeStruct,
+    }
+
+    #[test]
+    fn test_misc() {
+        let value = "BuyTkNadqZW_wYOeY4ppThkRRYE";
+
+        let mut headers = Headers::new();
+        headers.set_raw("auEduPersonSharedToken", value);
+        headers.set_raw("unit", "This value doesn't matter");
+        headers.set_raw("no_value", "This value doesn't matter either");
+
+        let attrs = deserialize::<MiscAttributes>(&headers).unwrap();
+        assert_eq!(&attrs.shared_token.0, value);
+    }
 }
