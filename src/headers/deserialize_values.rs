@@ -353,14 +353,18 @@ impl<'de> VariantAccess<'de> for UnitVariant {
     where
         T: DeserializeSeed<'de>,
     {
-        unimplemented!()
+        Err(HeadersDeserializationError::InvalidValueType {
+            msg: "enum variant requires unsuitable type (newtype), expected only unit variants",
+        })
     }
 
     fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        Err(HeadersDeserializationError::InvalidValueType {
+            msg: "enum variant requires unsuitable type (tuple), expected only unit variants",
+        })
     }
 
     fn struct_variant<V>(
@@ -371,6 +375,8 @@ impl<'de> VariantAccess<'de> for UnitVariant {
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        Err(HeadersDeserializationError::InvalidValueType {
+            msg: "enum variant requires unsuitable type (struct), expected only unit variants",
+        })
     }
 }
