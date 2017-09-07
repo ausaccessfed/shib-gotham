@@ -12,6 +12,7 @@ enum HeadersDeserializationError {
     InvalidValueType { msg: &'static str },
     InvalidState { msg: &'static str },
     ParseError { source: &'static str, msg: String },
+    GeneralError { msg: String },
 }
 
 impl error::Error for HeadersDeserializationError {
@@ -21,8 +22,11 @@ impl error::Error for HeadersDeserializationError {
 }
 
 impl de::Error for HeadersDeserializationError {
-    fn custom<T>(_: T) -> Self {
-        unimplemented!()
+    fn custom<T>(t: T) -> Self
+    where
+        T: fmt::Display,
+    {
+        HeadersDeserializationError::GeneralError { msg: format!("{}", t) }
     }
 }
 
