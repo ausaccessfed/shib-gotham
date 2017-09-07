@@ -9,6 +9,7 @@ use hyper::Headers;
 #[derive(Debug)]
 enum HeadersDeserializationError {
     InvalidTopLevelType { msg: &'static str },
+    InvalidState { msg: &'static str },
 }
 
 impl error::Error for HeadersDeserializationError {
@@ -243,5 +244,53 @@ mod tests {
             attrs.get("displayName").map(String::as_ref),
             Some("John Doe")
         );
+    }
+
+    #[derive(Deserialize)]
+    struct PrimitiveValues {
+        a_u8: u8,
+        a_u16: u16,
+        a_u32: u32,
+        a_u64: u64,
+        an_i8: i8,
+        an_i16: i16,
+        an_i32: i32,
+        an_i64: i64,
+        a_bool: bool,
+        an_f32: f32,
+        an_f64: f64,
+        a_char: char,
+    }
+
+    #[test]
+    fn test_primitive_values() {
+        let mut headers = Headers::new();
+        headers.set_raw("a_u8", "8");
+        headers.set_raw("a_u16", "16");
+        headers.set_raw("a_u32", "32");
+        headers.set_raw("a_u64", "64");
+        headers.set_raw("an_i8", "18");
+        headers.set_raw("an_i16", "116");
+        headers.set_raw("an_i32", "132");
+        headers.set_raw("an_i64", "164");
+        headers.set_raw("a_bool", "true");
+        headers.set_raw("an_f32", "3.14159265359");
+        headers.set_raw("an_f64", "2.71828182846");
+        headers.set_raw("a_char", "\u{39e}");
+
+        let attrs = deserialize::<PrimitiveValues>(&headers).unwrap();
+
+        assert_eq!(attrs.a_u8, 8);
+        assert_eq!(attrs.a_u16, 16);
+        assert_eq!(attrs.a_u32, 32);
+        assert_eq!(attrs.a_u64, 64);
+        assert_eq!(attrs.an_i8, 18);
+        assert_eq!(attrs.an_i16, 116);
+        assert_eq!(attrs.an_i32, 132);
+        assert_eq!(attrs.an_i64, 164);
+        assert_eq!(attrs.a_bool, true);
+        assert_eq!(attrs.an_f32, 3.14159265359);
+        assert_eq!(attrs.an_f64, 2.71828182846);
+        assert_eq!(attrs.a_char, '\u{39e}');
     }
 }

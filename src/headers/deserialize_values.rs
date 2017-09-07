@@ -1,5 +1,6 @@
 use serde::de::{Deserializer, DeserializeSeed, Visitor, EnumAccess, VariantAccess, SeqAccess};
 
+use std::error::Error;
 use std::vec::IntoIter;
 use std::ops::Deref;
 use std::marker::PhantomData;
@@ -46,6 +47,27 @@ where
         DeserializeValue {
             value,
             phantom: PhantomData,
+        }
+    }
+}
+
+fn translate_parse_error<E>(e: E) -> HeadersDeserializationError
+where
+    E: Error,
+{
+    unimplemented!()
+}
+
+macro_rules! primitive {
+    ($fn:ident, $visit_fn:ident) => {
+        fn $fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>
+        {
+            match self.value.parse() {
+                Ok(v) => visitor.$visit_fn(v),
+                Err(e) => Err(translate_parse_error(e))
+            }
         }
     }
 }
@@ -117,8 +139,32 @@ where
         visitor.visit_some(self)
     }
 
+    primitive!(deserialize_bool, visit_bool);
+    primitive!(deserialize_i8, visit_i8);
+    primitive!(deserialize_i16, visit_i16);
+    primitive!(deserialize_i32, visit_i32);
+    primitive!(deserialize_i64, visit_i64);
+    primitive!(deserialize_u8, visit_u8);
+    primitive!(deserialize_u16, visit_u16);
+    primitive!(deserialize_u32, visit_u32);
+    primitive!(deserialize_u64, visit_u64);
+    primitive!(deserialize_f32, visit_f32);
+    primitive!(deserialize_f64, visit_f64);
+
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        match self.value.chars().next() {
+            Some(c) => visitor.visit_char(c),
+            None => Err(HeadersDeserializationError::InvalidState {
+                msg: "empty string provided for HTTP header, unable to extract char value",
+            }),
+        }
+    }
+
     forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes
+        bytes
         byte_buf unit unit_struct newtype_struct tuple
         tuple_struct map struct
     }
