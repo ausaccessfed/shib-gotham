@@ -33,10 +33,10 @@ impl<T> NewMiddleware for Shibbleware<T> {
 }
 
 impl<T> Middleware for Shibbleware<T> {
-    fn call<Chain>(self, state: State, request: Request, chain: Chain) -> Box<HandlerFuture>
+    fn call<Chain>(self, state: State, chain: Chain) -> Box<HandlerFuture>
     where
-        Chain: FnOnce(State, Request) -> Box<HandlerFuture>,
+        Chain: FnOnce(State) -> Box<HandlerFuture>,
     {
-        chain(state, request)
+        chain(state)
     }
 }
