@@ -54,11 +54,11 @@ mod tests {
     use std::collections::HashMap;
 
     use serde_bytes;
-    use hyper::{Method, Headers};
+    use hyper::Headers;
 
     #[test]
     fn test_deserialize_unit() {
-        let mut headers = Headers::new();
+        let headers = Headers::new();
         deserialize::<()>(&headers).unwrap();
     }
 
@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_unit_struct() {
-        let mut headers = Headers::new();
+        let headers = Headers::new();
         deserialize::<NoAttributes>(&headers).unwrap();
     }
 
@@ -84,7 +84,7 @@ mod tests {
         let mut headers = Headers::new();
         headers.set_raw("auEduPersonSharedToken", value);
 
-        let attrs: SingleAttribute = deserialize::<SingleAttribute>(&headers).unwrap();
+        let attrs = deserialize::<SingleAttribute>(&headers).unwrap();
         assert_eq!(&attrs.shared_token, value);
     }
 
@@ -96,7 +96,7 @@ mod tests {
         headers.set_raw("auEduPersonSharedToken", value);
         headers.set_raw("anotherAttribute", "unused_value");
 
-        let attrs: SingleAttribute = deserialize::<SingleAttribute>(&headers).unwrap();
+        let attrs = deserialize::<SingleAttribute>(&headers).unwrap();
         assert_eq!(&attrs.shared_token, value);
     }
 
@@ -348,5 +348,9 @@ mod tests {
 
         let attrs = deserialize::<MiscAttributes>(&headers).unwrap();
         assert_eq!(&attrs.shared_token.0, value);
+
+        // These are obviously irrefutable, but they fix the "field is never used" warnings
+        let _: () = attrs.unit;
+        let _: NoValue = attrs.no_value;
     }
 }

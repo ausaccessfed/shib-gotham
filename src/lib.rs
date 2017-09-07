@@ -2,7 +2,6 @@
 
 extern crate gotham;
 extern crate hyper;
-#[macro_use]
 extern crate serde;
 
 #[cfg(test)]
