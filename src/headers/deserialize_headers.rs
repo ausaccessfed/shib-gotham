@@ -1,38 +1,60 @@
 use std::str;
 
-use serde::de::{Deserializer, Visitor, MapAccess, DeserializeSeed};
-use hyper::header::HeaderView;
+use serde::de::{Deserializer, Visitor, MapAccess, SeqAccess, DeserializeSeed};
+use hyper::header::{Headers, HeaderView};
 
 use headers::HeadersDeserializationError;
 use headers::deserialize_values::DeserializeValue;
 
-pub struct DeserializeHeaders<'a, Iter>
-where
-    Iter: Iterator<Item = HeaderView<'a>> + 'a,
-{
-    iter: Iter,
+pub(super) struct DeserializeHeaders<'a> {
+    headers: &'a Headers,
 }
 
-impl<'a, Iter> DeserializeHeaders<'a, Iter>
-where
-    Iter: Iterator<Item = HeaderView<'a>> + 'a,
-{
-    pub(super) fn new(iter: Iter) -> Self {
-        DeserializeHeaders { iter }
+impl<'a> DeserializeHeaders<'a> {
+    pub(super) fn new(headers: &'a Headers) -> Self {
+        DeserializeHeaders { headers }
     }
 }
 
-impl<'de, 'a: 'de, Iter> Deserializer<'de> for DeserializeHeaders<'a, Iter>
-where
-    Iter: Iterator<Item = HeaderView<'a>>,
-{
+macro_rules! reject {
+    {$fn:ident, $msg:expr} => {
+        fn $fn<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>
+        {
+            Err(HeadersDeserializationError::InvalidTopLevelType { msg: $msg })
+        }
+    };
+
+    {$fn:ident, $msg:expr, ($($arg_i:ident : $arg_t:ty),*)} => {
+        fn $fn<V>(self, $($arg_i : $arg_t),*, _visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>
+        {
+            Err(HeadersDeserializationError::InvalidTopLevelType { msg: $msg })
+        }
+    }
+}
+
+impl<'de, 'a: 'de> Deserializer<'de> for DeserializeHeaders<'a> {
     type Error = HeadersDeserializationError;
 
-    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        visitor.visit_unit()
+    }
+
+    fn deserialize_unit_struct<V>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        self.deserialize_unit(visitor)
     }
 
     fn deserialize_struct<V>(
@@ -44,14 +66,141 @@ where
     where
         V: Visitor<'de>,
     {
-        visitor.visit_map(AccessHeaders { iter: self.iter, current: None })
+        self.deserialize_map(visitor)
     }
 
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char str string bytes
-        byte_buf option unit unit_struct newtype_struct seq tuple
-        tuple_struct map enum identifier ignored_any
+    fn deserialize_newtype_struct<V>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_newtype_struct(self)
     }
+
+    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_seq(TupleAccess { headers: self.headers })
+    }
+
+    fn deserialize_tuple_struct<V>(
+        self,
+        _name: &'static str,
+        len: usize,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        self.deserialize_tuple(len, visitor)
+    }
+
+    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_map(AccessHeaders {
+            iter: self.headers.iter(),
+            current: None,
+        })
+    }
+
+    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_unit()
+    }
+
+    reject!(
+        deserialize_bool,
+        "unsuitable scalar type (bool) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_i8,
+        "unsuitable scalar type (i8) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_i16,
+        "unsuitable scalar type (i16) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_i32,
+        "unsuitable scalar type (i32) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_i64,
+        "unsuitable scalar type (i64) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_u8,
+        "unsuitable scalar type (u8) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_u16,
+        "unsuitable scalar type (u16) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_u32,
+        "unsuitable scalar type (u32) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_u64,
+        "unsuitable scalar type (u64) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_f32,
+        "unsuitable scalar type (f32) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_f64,
+        "unsuitable scalar type (f64) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_char,
+        "unsuitable scalar type (char) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_str,
+        "unsuitable type (str) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_string,
+        "unsuitable type (String) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_bytes,
+        "unsuitable type (bytes) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_byte_buf,
+        "unsuitable type (byte buffer) as top-level user attributes type"
+    );
+    reject!(
+        deserialize_option,
+        "unsuitable type (Option<_>) as top-level user attributes type"
+    );
+    reject!(deserialize_enum, "unsuitable type (enum) as top-level user attributes type",
+            (_name: &'static str, _variants: &'static [&'static str]));
+
+    reject!(
+        deserialize_seq,
+        "unsuitable type (sequence) as top-level user attributes type"
+    );
+
+    reject!(
+        deserialize_identifier,
+        "unsuitable type (identifier) as top-level user attributes type"
+    );
+
+    reject!(
+        deserialize_any,
+        "unsuitable type (any) as top-level user attributes type"
+    );
 }
 
 struct AccessHeaders<'a, Iter>
@@ -102,5 +251,21 @@ where
             }
             None => unreachable!("header name but no value?"),
         }
+    }
+}
+
+struct TupleAccess<'a> {
+    headers: &'a Headers,
+}
+
+impl<'de, 'a: 'de> SeqAccess<'de> for TupleAccess<'a> {
+    type Error = HeadersDeserializationError;
+
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+    where
+        T: DeserializeSeed<'de>,
+    {
+        let deserializer = DeserializeHeaders::new(self.headers);
+        Ok(Some(seed.deserialize(deserializer)?))
     }
 }

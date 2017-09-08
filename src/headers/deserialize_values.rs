@@ -1,5 +1,6 @@
 use serde::de::{Deserializer, DeserializeSeed, Visitor, EnumAccess, VariantAccess, SeqAccess};
 
+use std::error::Error;
 use std::vec::IntoIter;
 use std::ops::Deref;
 use std::marker::PhantomData;
@@ -50,18 +51,53 @@ where
     }
 }
 
+fn translate_parse_error<E>(source: &'static str, e: E) -> HeadersDeserializationError
+where
+    E: Error,
+{
+    let msg = format!("{}", e);
+    HeadersDeserializationError::ParseError { source, msg }
+}
+
+macro_rules! primitive {
+    ($fn:ident, $visit_fn:ident) => {
+        fn $fn<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>
+        {
+            match self.value.parse() {
+                Ok(v) => visitor.$visit_fn(v),
+                Err(e) => Err(translate_parse_error(stringify!($fn), e))
+            }
+        }
+    }
+}
+
+macro_rules! reject {
+    {$fn:ident, $msg:expr} => {
+        fn $fn<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>
+        {
+            Err(HeadersDeserializationError::InvalidValueType { msg: $msg })
+        }
+    };
+
+    {$fn:ident, $msg:expr, ($($arg_i:ident : $arg_t:ty),*)} => {
+        fn $fn<V>(self, $($arg_i : $arg_t),*, _visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>
+        {
+            Err(HeadersDeserializationError::InvalidValueType { msg: $msg })
+        }
+    }
+}
+
 impl<'de, S> Deserializer<'de> for DeserializeValue<'de, S>
 where
     S: VisitableString<'de>,
 {
     type Error = HeadersDeserializationError;
-
-    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        unimplemented!()
-    }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
@@ -117,11 +153,94 @@ where
         visitor.visit_some(self)
     }
 
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 char bytes
-        byte_buf unit unit_struct newtype_struct tuple
-        tuple_struct map struct
+    primitive!(deserialize_bool, visit_bool);
+    primitive!(deserialize_i8, visit_i8);
+    primitive!(deserialize_i16, visit_i16);
+    primitive!(deserialize_i32, visit_i32);
+    primitive!(deserialize_i64, visit_i64);
+    primitive!(deserialize_u8, visit_u8);
+    primitive!(deserialize_u16, visit_u16);
+    primitive!(deserialize_u32, visit_u32);
+    primitive!(deserialize_u64, visit_u64);
+    primitive!(deserialize_f32, visit_f32);
+    primitive!(deserialize_f64, visit_f64);
+
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        match self.value.chars().next() {
+            Some(c) => visitor.visit_char(c),
+            None => Err(HeadersDeserializationError::InvalidState {
+                msg: "empty string provided for HTTP header, unable to extract char value",
+            }),
+        }
     }
+
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_bytes(self.value.as_bytes())
+    }
+
+    fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        self.deserialize_bytes(visitor)
+    }
+
+    fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_unit()
+    }
+
+    fn deserialize_unit_struct<V>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        self.deserialize_unit(visitor)
+    }
+
+    fn deserialize_newtype_struct<V>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_newtype_struct(self)
+    }
+
+    reject!(
+        deserialize_tuple,
+        "unsuitable type (tuple) for attribute value",
+        (_len: usize)
+    );
+
+    reject!(
+        deserialize_tuple_struct,
+        "unsuitable type (tuple struct) for attribute value",
+        (_name: &'static str, _len: usize)
+    );
+
+    reject!(deserialize_map, "unsuitable type (map) for attribute value");
+
+    reject!(
+        deserialize_struct,
+        "unsuitable type (struct) for attribute value",
+        (_name: &'static str, _fields: &'static [&'static str])
+    );
+
+    reject!(deserialize_any, "unsuitable type (any) for attribute value");
 }
 
 struct MultiValued {
@@ -234,14 +353,18 @@ impl<'de> VariantAccess<'de> for UnitVariant {
     where
         T: DeserializeSeed<'de>,
     {
-        unimplemented!()
+        Err(HeadersDeserializationError::InvalidValueType {
+            msg: "enum variant requires unsuitable type (newtype), expected only unit variants",
+        })
     }
 
     fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        Err(HeadersDeserializationError::InvalidValueType {
+            msg: "enum variant requires unsuitable type (tuple), expected only unit variants",
+        })
     }
 
     fn struct_variant<V>(
@@ -252,6 +375,8 @@ impl<'de> VariantAccess<'de> for UnitVariant {
     where
         V: Visitor<'de>,
     {
-        unimplemented!()
+        Err(HeadersDeserializationError::InvalidValueType {
+            msg: "enum variant requires unsuitable type (struct), expected only unit variants",
+        })
     }
 }
