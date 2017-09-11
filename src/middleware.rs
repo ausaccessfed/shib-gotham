@@ -1,8 +1,6 @@
 use std::io;
 use std::marker::PhantomData;
 
-use hyper::Request;
-
 use gotham::state::State;
 use gotham::handler::HandlerFuture;
 use gotham::middleware::{NewMiddleware, Middleware};
