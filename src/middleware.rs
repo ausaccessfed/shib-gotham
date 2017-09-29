@@ -16,6 +16,14 @@ pub struct Shibbleware<T> {
     phantom: PhantomData<SessionTypePhantom<T>>,
 }
 
+impl<T> Shibbleware<T> {
+    pub fn new() -> Shibbleware<T> {
+        Shibbleware { phantom: PhantomData }
+    }
+}
+
+impl<T> Copy for Shibbleware<T> {}
+
 impl<T> Clone for Shibbleware<T> {
     fn clone(&self) -> Self {
         Shibbleware { phantom: PhantomData }
@@ -26,7 +34,7 @@ impl<T> NewMiddleware for Shibbleware<T> {
     type Instance = Self;
 
     fn new_middleware(&self) -> io::Result<Self::Instance> {
-        Ok(self.clone())
+        Ok(*self)
     }
 }
 
