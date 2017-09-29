@@ -7,7 +7,7 @@ use serde::de::{self, Deserialize};
 use hyper::Headers;
 
 #[derive(Debug)]
-enum HeadersDeserializationError {
+pub(crate) enum HeadersDeserializationError {
     InvalidTopLevelType { msg: &'static str },
     InvalidValueType { msg: &'static str },
     InvalidState { msg: &'static str },
@@ -39,7 +39,7 @@ impl fmt::Display for HeadersDeserializationError {
 }
 
 #[allow(dead_code)]
-fn deserialize<T>(headers: &Headers) -> Result<T, HeadersDeserializationError>
+pub(crate) fn deserialize<T>(headers: &Headers) -> Result<T, HeadersDeserializationError>
 where
     for<'de> T: Deserialize<'de>,
 {
