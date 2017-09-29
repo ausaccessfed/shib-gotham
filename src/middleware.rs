@@ -5,7 +5,7 @@ use gotham::state::State;
 use gotham::handler::HandlerFuture;
 use gotham::middleware::{NewMiddleware, Middleware};
 
-trait AttributesTypePhantom<T>: Send + Sync
+trait SessionTypePhantom<T>: Send + Sync
 where
     T: Send
 {
@@ -13,7 +13,7 @@ where
 
 /// Gotham middleware for receiving Shibboleth attributes and mapping them into a provided type.
 pub struct Shibbleware<T> {
-    phantom: PhantomData<AttributesTypePhantom<T>>,
+    phantom: PhantomData<SessionTypePhantom<T>>,
 }
 
 impl<T> Clone for Shibbleware<T> {
