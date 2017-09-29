@@ -16,11 +16,13 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate serde_bytes;
 
+mod authenticated_session;
 mod middleware;
 mod router;
 mod headers;
 mod receiver;
 
+pub use authenticated_session::*;
 pub use middleware::*;
 pub use router::*;
 pub use receiver::*;
