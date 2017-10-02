@@ -1,17 +1,12 @@
 extern crate hyper;
 extern crate mime;
-extern crate futures;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate fern;
-#[macro_use]
 extern crate log;
 extern crate chrono;
 
 extern crate gotham;
-#[macro_use]
-extern crate gotham_derive;
 extern crate shib_gotham;
 
 use log::LogLevelFilter;

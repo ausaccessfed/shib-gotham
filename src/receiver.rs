@@ -1,5 +1,4 @@
 use std::io;
-use std::fmt::Debug;
 use std::marker::PhantomData;
 use futures::future;
 use hyper::{self, Response, StatusCode, Headers};
@@ -8,7 +7,7 @@ use serde::Deserialize;
 use gotham;
 use gotham::handler::{Handler, NewHandler, HandlerFuture};
 use gotham::http::response::create_response;
-use gotham::state::{State, FromState};
+use gotham::state::{State, FromState, request_id};
 
 use headers::deserialize;
 
@@ -104,16 +103,6 @@ where
     }
 }
 
-fn receive<A>(headers: &Headers)
-where
-    A: for<'de> Deserialize<'de> + 'static,
-{
-    match deserialize::<A>(headers) {
-        Ok(t) => unimplemented!(),
-        Err(e) => println!("error: {:?}", e),
-    }
-}
-
 impl<A, R> Handler for LoginHandler<A, R>
 where
     R: Receiver<A> + Send + Sync + Copy,
@@ -123,6 +112,12 @@ where
         let attrs = match deserialize::<A>(Headers::borrow_from(&state)) {
             Ok(t) => t,
             Err(e) => {
+                error!(
+                    "[{}] failed to deserialize user from incoming headers: {:?}",
+                    request_id(&state),
+                    e
+                );
+
                 let response = create_response(&state, StatusCode::InternalServerError, None);
                 return Box::new(future::ok((state, response)));
             }

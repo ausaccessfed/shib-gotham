@@ -1,21 +1,16 @@
 use std::fmt::Debug;
 
-use hyper;
-use hyper::Headers;
 use serde::Deserialize;
 
-use gotham;
 use gotham::router::Router;
 use gotham::router::tree::TreeBuilder;
 use gotham::router::tree::node::{SegmentType, NodeBuilder};
 use gotham::router::response::finalizer::ResponseFinalizerBuilder;
 use gotham::router::request::path::NoopPathExtractor;
-use gotham::router::request::query_string::NoopQueryStringExtractor;
 use gotham::router::route::{RouteImpl, Extractors, Delegation};
 use gotham::router::route::matcher::any::AnyRouteMatcher;
 use gotham::router::route::dispatch::{DispatcherImpl, new_pipeline_set, finalize_pipeline_set};
 
-use middleware::Shibbleware;
 use receiver::{Receiver, LoginHandler, ReturnInfo};
 
 /// Builds the subrouter for the Shibboleth-protected part of application, where new sessions will
