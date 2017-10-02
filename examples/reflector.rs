@@ -54,7 +54,7 @@ fn set_logging() {
         .format(|out, message, record| {
             out.finish(format_args!(
                 "{}[{}][{}]{}",
-                chrono::UTC::now().format("[%Y-%m-%d %H:%M:%S%.9f]"),
+                chrono::Utc::now().format("[%Y-%m-%d %H:%M:%S%.9f]"),
                 record.target(),
                 record.level(),
                 message
