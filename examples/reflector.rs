@@ -19,6 +19,7 @@ use hyper::{Response, StatusCode};
 use hyper::server::Http;
 use gotham::handler::NewHandlerService;
 use gotham::middleware::pipeline::new_pipeline;
+use gotham::middleware::session::{NewSessionMiddleware, SessionData};
 use gotham::http::response::create_response;
 use gotham::router::Router;
 use gotham::router::request::path::NoopPathExtractor;
@@ -29,8 +30,8 @@ use gotham::router::route::matcher::any::AnyRouteMatcher;
 use gotham::router::tree::TreeBuilder;
 use gotham::router::tree::node::{SegmentType, NodeBuilder};
 use gotham::router::response::finalizer::ResponseFinalizerBuilder;
-use gotham::state::State;
-use shib_gotham::{Shibbleware, ReceiverFailed};
+use gotham::state::{State, FromState};
+use shib_gotham::{Shibbleware, ReceiverFailed, AuthenticatedSession};
 
 fn main() {
     set_logging();
@@ -64,9 +65,15 @@ fn set_logging() {
         .unwrap();
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 struct Session {
-    user: UserAttributes,
+    user: Option<UserAttributes>,
+}
+
+impl AuthenticatedSession for Session {
+    fn is_authenticated(&self) -> bool {
+        self.user.is_some()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -102,20 +109,67 @@ mod controller {
 
         (state, response)
     }
+
+    pub fn attributes(state: State) -> (State, Response) {
+        let body = format!(
+            "
+                <html>
+                    <head>
+                        <title>shib-gotham - Attribute Reflector Example</title>
+                    </head>
+                    <body>
+                        <h2>Attributes</h2>
+                        <pre><code>{:?}</code></pre>
+                    </body>
+                </html>
+            ",
+            SessionData::<Session>::borrow_from(&state)
+                .user
+                .as_ref()
+                .unwrap()
+        );
+
+        let response = create_response(
+            &state,
+            StatusCode::Ok,
+            Some((body.into_bytes(), mime::TEXT_HTML)),
+        );
+
+        (state, response)
+    }
 }
 
 fn receive_subject(state: &mut State, attributes: UserAttributes) -> Result<(), ReceiverFailed> {
     println!("received attributes: {:?}", attributes);
+
+    SessionData::<Session>::borrow_mut_from(state).user = Some(attributes);
+
     Ok(())
 }
 
 fn router() -> Router {
     let pipelines = new_pipeline_set();
-    let (pipelines, protected) = pipelines.add(new_pipeline().add(Shibbleware::<Session>::new()));
+
+    let (pipelines, default) = pipelines.add(
+        new_pipeline()
+            .add(
+                NewSessionMiddleware::default()
+                    .with_session_type::<Session>()
+                    .insecure(),
+            )
+            .build(),
+    );
+
+    let (pipelines, protected) = pipelines.add(
+        new_pipeline()
+            .add(Shibbleware::<Session>::new("/auth/login"))
+            .build(),
+    );
+
     let pipelines = finalize_pipeline_set(pipelines);
 
-    let default_pipeline_chain = ();
-    let protected_pipeline_chain = (protected, ());
+    let default_pipeline_chain = (default, ());
+    let protected_pipeline_chain = (protected, (default, ()));
 
     let mut tree_builder = TreeBuilder::new();
 
@@ -135,6 +189,25 @@ fn router() -> Router {
     };
 
     tree_builder.add_route(Box::new(welcome_route));
+
+    let mut attributes = NodeBuilder::new("attributes", SegmentType::Static);
+    let attributes_route = {
+        let dispatcher = DispatcherImpl::new(
+            || Ok(controller::attributes),
+            protected_pipeline_chain,
+            pipelines.clone(),
+        );
+
+        RouteImpl::new(
+            AnyRouteMatcher::new(),
+            Box::new(dispatcher),
+            Extractors::<NoopPathExtractor, NoopQueryStringExtractor>::new(),
+            Delegation::Internal,
+        )
+    };
+
+    attributes.add_route(Box::new(attributes_route));
+    tree_builder.add_child(attributes);
 
     let mut auth = NodeBuilder::new("auth", SegmentType::Static);
 

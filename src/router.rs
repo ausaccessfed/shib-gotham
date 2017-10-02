@@ -38,7 +38,7 @@ where
         RouteImpl::new(
             AnyRouteMatcher::new(),
             Box::new(dispatcher),
-            Extractors::<ReturnInfo, NoopQueryStringExtractor>::new(),
+            Extractors::<NoopPathExtractor, ReturnInfo>::new(),
             Delegation::Internal,
         )
     };

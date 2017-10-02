@@ -1,9 +1,15 @@
 use std::io;
 use std::marker::PhantomData;
 
-use gotham::state::State;
+use futures::future;
+use hyper::{StatusCode, Uri};
+use hyper::header::Location;
+
+use gotham::state::{State, FromState};
 use gotham::handler::HandlerFuture;
+use gotham::http::response::create_response;
 use gotham::middleware::{NewMiddleware, Middleware};
+use gotham::middleware::session::SessionData;
 
 use authenticated_session::AuthenticatedSession;
 
@@ -18,6 +24,7 @@ pub struct Shibbleware<T>
 where
     T: AuthenticatedSession,
 {
+    auth_login_location: &'static str,
     phantom: PhantomData<SessionTypePhantom<T>>,
 }
 
@@ -25,8 +32,11 @@ impl<T> Shibbleware<T>
 where
     T: AuthenticatedSession,
 {
-    pub fn new() -> Shibbleware<T> {
-        Shibbleware { phantom: PhantomData }
+    pub fn new(auth_login_location: &'static str) -> Shibbleware<T> {
+        Shibbleware {
+            auth_login_location,
+            phantom: PhantomData,
+        }
     }
 }
 
@@ -41,7 +51,7 @@ where
     T: AuthenticatedSession,
 {
     fn clone(&self) -> Self {
-        Shibbleware { phantom: PhantomData }
+        *self
     }
 }
 
@@ -64,6 +74,27 @@ where
     where
         Chain: FnOnce(State) -> Box<HandlerFuture>,
     {
-        chain(state)
+        if SessionData::<T>::borrow_from(&state).is_authenticated() {
+            chain(state)
+        } else {
+            let mut response = create_response(&state, StatusCode::SeeOther, None);
+
+            {
+                let uri = Uri::borrow_from(&state);
+
+                let return_path = match uri.query() {
+                    Some(query) => format!("{}?{}", uri.path(), query),
+                    None => uri.path().to_owned(),
+                };
+
+                response.headers_mut().set(Location::new(format!(
+                    "{}?return_path={}",
+                    self.auth_login_location,
+                    return_path // TODO: URL encode
+                )));
+            }
+
+            Box::new(future::ok((state, response)))
+        }
     }
 }
