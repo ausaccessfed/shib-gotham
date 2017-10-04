@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use futures::future;
 use hyper::{StatusCode, Uri};
 use hyper::header::Location;
+use percent_encoding::{utf8_percent_encode, QUERY_ENCODE_SET};
 
 use gotham::state::{State, FromState};
 use gotham::handler::HandlerFuture;
@@ -66,6 +67,10 @@ where
     }
 }
 
+define_encode_set! {
+    pub QUERY_VALUE_ENCODE_SET = [QUERY_ENCODE_SET] | {'&', '=', ';'}
+}
+
 impl<T> Middleware for Shibbleware<T>
 where
     T: AuthenticatedSession,
@@ -87,10 +92,12 @@ where
                     None => uri.path().to_owned(),
                 };
 
+                let encoded_return_path = utf8_percent_encode(&return_path, QUERY_VALUE_ENCODE_SET);
+
                 response.headers_mut().set(Location::new(format!(
                     "{}?return_path={}",
                     self.auth_login_location,
-                    return_path // TODO: URL encode
+                    encoded_return_path
                 )));
             }
 

@@ -8,6 +8,8 @@ extern crate gotham_derive;
 extern crate serde;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate percent_encoding;
 
 #[cfg(test)]
 #[macro_use]
