@@ -52,7 +52,7 @@ pub(crate) struct ReturnInfo {
     return_path: Option<String>,
 }
 
-pub(crate) struct LoginHandler<A, R>
+pub struct LoginHandler<A, R>
 where
     R: Receiver<A> + Send + Sync + Copy,
     A: for<'de> Deserialize<'de> + 'static,
@@ -66,7 +66,7 @@ where
     R: Receiver<A> + Send + Sync + Copy,
     A: for<'de> Deserialize<'de> + 'static,
 {
-    pub(crate) fn new(r: R) -> Self {
+    pub fn new(r: R) -> Self {
         LoginHandler {
             r,
             phantom: PhantomData,
