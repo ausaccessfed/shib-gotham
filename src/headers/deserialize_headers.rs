@@ -1,4 +1,5 @@
 use std::str;
+use std::collections::BTreeMap;
 
 use serde::de::{Deserializer, Visitor, MapAccess, SeqAccess, DeserializeSeed};
 use hyper::header::{Headers, HeaderView};
@@ -60,13 +61,26 @@ impl<'de, 'a: 'de> Deserializer<'de> for DeserializeHeaders<'a> {
     fn deserialize_struct<V>(
         self,
         _name: &'static str,
-        _fields: &'static [&'static str],
+        fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        self.deserialize_map(visitor)
+        let mappings: BTreeMap<String, &'static str> = fields.iter().cloned()
+            // Avoid copying anything which is already lower case
+            .filter_map(|a| if a.chars().any(|c| c.is_uppercase()) {
+            Some((a.to_lowercase(), a))
+        } else {
+            None
+        })
+        .collect();
+
+        visitor.visit_map(AccessHeaders {
+            iter: self.headers.iter(),
+            mappings,
+            current: None,
+        })
     }
 
     fn deserialize_newtype_struct<V>(
@@ -105,6 +119,7 @@ impl<'de, 'a: 'de> Deserializer<'de> for DeserializeHeaders<'a> {
     {
         visitor.visit_map(AccessHeaders {
             iter: self.headers.iter(),
+            mappings: BTreeMap::new(),
             current: None,
         })
     }
@@ -208,6 +223,7 @@ where
     Iter: Iterator<Item = HeaderView<'a>> + 'a,
 {
     iter: Iter,
+    mappings: BTreeMap<String, &'a str>,
     current: Option<HeaderView<'a>>,
 }
 
@@ -233,8 +249,13 @@ where
 
         match self.current {
             Some(ref header) => {
-                let deserializer = DeserializeValue::new(header.name());
-                Ok(Some(seed.deserialize(deserializer)?))
+                let name = header.name().to_lowercase();
+                let key = match self.mappings.get(&name) {
+                    Some(&n) => seed.deserialize(DeserializeValue::new(n)),
+                    None => seed.deserialize(DeserializeValue::new(name)),
+                };
+
+                Ok(Some(key?))
             }
             None => Ok(None),
         }
