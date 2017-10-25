@@ -1,5 +1,6 @@
 use std::io;
 use std::marker::PhantomData;
+use std::panic::RefUnwindSafe;
 
 use futures::future;
 use hyper::{StatusCode, Uri};
@@ -14,7 +15,7 @@ use gotham::middleware::session::SessionData;
 
 use authenticated_session::AuthenticatedSession;
 
-trait SessionTypePhantom<T>: Send + Sync
+trait SessionTypePhantom<T>: Send + Sync + RefUnwindSafe
 where
     T: Send
 {
