@@ -89,6 +89,17 @@ mod tests {
     }
 
     #[test]
+    fn test_case_insensitive() {
+        let value = "BuyTkNadqZW_wYOeY4ppThkRRYE";
+
+        let mut headers = Headers::new();
+        headers.set_raw("auedupersonsharedtoken", value);
+
+        let attrs = deserialize::<SingleAttribute>(&headers).unwrap();
+        assert_eq!(&attrs.shared_token, value);
+    }
+
+    #[test]
     fn test_ignored_attribute() {
         let value = "BuyTkNadqZW_wYOeY4ppThkRRYE";
 
@@ -247,8 +258,9 @@ mod tests {
 
         let attrs = deserialize::<HashMap<String, String>>(&headers).unwrap();
 
+        // Keys are converted to lower case before being put in a map
         assert_eq!(
-            attrs.get("displayName").map(String::as_ref),
+            attrs.get("displayname").map(String::as_ref),
             Some("John Doe")
         );
     }
