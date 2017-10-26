@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::panic::RefUnwindSafe;
 
 use serde::Deserialize;
 
@@ -18,7 +19,7 @@ use receiver::{Receiver, LoginHandler, ReturnInfo};
 pub fn auth_router<A, R>(r: R) -> Router
 where
     A: for<'de> Deserialize<'de> + Debug + 'static,
-    R: Receiver<A> + Copy + 'static,
+    R: Receiver<A> + Copy + RefUnwindSafe + 'static,
 {
     let pipelines = finalize_pipeline_set(new_pipeline_set());
 

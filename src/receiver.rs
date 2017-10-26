@@ -1,5 +1,6 @@
 use std::io;
 use std::marker::PhantomData;
+use std::panic::RefUnwindSafe;
 use futures::future;
 use hyper::{self, Response, StatusCode, Headers};
 use hyper::header::Location;
@@ -41,7 +42,7 @@ where
     }
 }
 
-trait AttributesTypePhantom<T>: Send + Sync
+trait AttributesTypePhantom<T>: Send + Sync + RefUnwindSafe
 where
     T: Send
 {
@@ -52,9 +53,9 @@ pub(crate) struct ReturnInfo {
     return_path: Option<String>,
 }
 
-pub(crate) struct LoginHandler<A, R>
+pub struct LoginHandler<A, R>
 where
-    R: Receiver<A> + Send + Sync + Copy,
+    R: Receiver<A> + Send + Sync + Copy + RefUnwindSafe,
     A: for<'de> Deserialize<'de> + 'static,
 {
     r: R,
@@ -63,10 +64,10 @@ where
 
 impl<A, R> LoginHandler<A, R>
 where
-    R: Receiver<A> + Send + Sync + Copy,
+    R: Receiver<A> + Send + Sync + Copy + RefUnwindSafe,
     A: for<'de> Deserialize<'de> + 'static,
 {
-    pub(crate) fn new(r: R) -> Self {
+    pub fn new(r: R) -> Self {
         LoginHandler {
             r,
             phantom: PhantomData,
@@ -76,14 +77,14 @@ where
 
 impl<A, R> Copy for LoginHandler<A, R>
 where
-    R: Receiver<A> + Send + Sync + Copy,
+    R: Receiver<A> + Send + Sync + Copy + RefUnwindSafe,
     A: for<'de> Deserialize<'de> + 'static,
 {
 }
 
 impl<A, R> Clone for LoginHandler<A, R>
 where
-    R: Receiver<A> + Send + Sync + Copy,
+    R: Receiver<A> + Send + Sync + Copy + RefUnwindSafe,
     A: for<'de> Deserialize<'de> + 'static,
 {
     fn clone(&self) -> Self {
@@ -93,7 +94,7 @@ where
 
 impl<A, R> NewHandler for LoginHandler<A, R>
 where
-    R: Receiver<A> + Send + Sync + Copy,
+    R: Receiver<A> + Send + Sync + Copy + RefUnwindSafe,
     A: for<'de> Deserialize<'de> + 'static,
 {
     type Instance = Self;
@@ -105,7 +106,7 @@ where
 
 impl<A, R> Handler for LoginHandler<A, R>
 where
-    R: Receiver<A> + Send + Sync + Copy,
+    R: Receiver<A> + Send + Sync + Copy + RefUnwindSafe,
     A: for<'de> Deserialize<'de> + 'static,
 {
     fn handle(self, mut state: State) -> Box<HandlerFuture> {
