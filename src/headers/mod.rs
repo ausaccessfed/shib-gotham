@@ -192,6 +192,9 @@ mod tests {
     struct OptionalAttribute {
         #[serde(rename = "displayName")]
         display_name: Option<String>,
+
+        #[serde(rename = "givenName")]
+        given_name: Option<String>,
     }
 
     #[test]
@@ -210,6 +213,7 @@ mod tests {
     fn test_tuple() {
         let mut headers = Headers::new();
         headers.set_raw("displayName", "John Doe");
+        headers.set_raw("givenname", "John");
         headers.set_raw("eduPersonAffiliation", "library-walk-in");
         headers.set_raw(
             "eduPersonEntitlement",
@@ -225,6 +229,7 @@ mod tests {
             &["urn:x-aaf:dev:1", "urn:x-aaf:dev:2", "urn:x-aaf:dev:3"]
         );
         assert_eq!(opt_attrs.display_name.unwrap(), "John Doe");
+        assert_eq!(opt_attrs.given_name.unwrap(), "John");
     }
 
     #[derive(Deserialize)]
