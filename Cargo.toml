@@ -1,17 +1,17 @@
 [package]
 name = "shib-gotham"
-version = "0.1.0"
+version = "0.2.0-dev"
 authors = ["Shaun Mangelsdorf <s.mangelsdorf@gmail.com>",
            "Bradley Beddoes <bradleybeddoes@gmail.com>"]
 
 [dependencies]
-log = "0.3.0"
+log = "0.4.0"
 futures = "0.1.0"
 hyper = "0.11.0"
-gotham = { git = "https://github.com/gotham-rs/gotham" }
-gotham_derive = { git = "https://github.com/gotham-rs/gotham" }
 serde = "1.0"
 percent-encoding = "1.0"
+gotham = "0.2.0-dev"
+gotham_derive = "0.2.0-dev"
 
 [dev-dependencies]
 tokio-core = "0.1"
@@ -20,3 +20,8 @@ serde_bytes = "0.10"
 mime = "*"
 fern = "*"
 chrono = "*"
+
+[patch.crates-io]
+gotham = { git = "https://github.com/gotham-rs/gotham" }
+gotham_derive = { git = "https://github.com/gotham-rs/gotham" }
+

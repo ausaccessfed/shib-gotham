@@ -5,14 +5,14 @@ use serde::Deserialize;
 
 use gotham::router::Router;
 use gotham::router::tree::TreeBuilder;
-use gotham::router::tree::node::{SegmentType, NodeBuilder};
+use gotham::router::tree::node::{NodeBuilder, SegmentType};
 use gotham::router::response::finalizer::ResponseFinalizerBuilder;
 use gotham::router::request::path::NoopPathExtractor;
-use gotham::router::route::{RouteImpl, Extractors, Delegation};
+use gotham::router::route::{Delegation, Extractors, RouteImpl};
 use gotham::router::route::matcher::any::AnyRouteMatcher;
-use gotham::router::route::dispatch::{DispatcherImpl, new_pipeline_set, finalize_pipeline_set};
+use gotham::router::route::dispatch::{finalize_pipeline_set, new_pipeline_set, DispatcherImpl};
 
-use receiver::{Receiver, LoginHandler, ReturnInfo};
+use receiver::{LoginHandler, Receiver, ReturnInfo};
 
 /// Builds the subrouter for the Shibboleth-protected part of application, where new sessions will
 /// be received for processing.

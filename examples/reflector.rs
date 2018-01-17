@@ -1,51 +1,44 @@
+extern crate chrono;
+extern crate fern;
 extern crate hyper;
+extern crate log;
 extern crate mime;
 #[macro_use]
 extern crate serde_derive;
-extern crate fern;
-extern crate log;
-extern crate chrono;
 
 extern crate gotham;
 extern crate shib_gotham;
 
-use log::LogLevelFilter;
+use log::LevelFilter;
 use hyper::{Response, StatusCode};
-use hyper::server::Http;
-use gotham::handler::NewHandlerService;
-use gotham::middleware::pipeline::new_pipeline;
+use gotham::pipeline::new_pipeline;
 use gotham::middleware::session::{NewSessionMiddleware, SessionData};
 use gotham::http::response::create_response;
 use gotham::router::Router;
 use gotham::router::request::path::NoopPathExtractor;
 use gotham::router::request::query_string::NoopQueryStringExtractor;
-use gotham::router::route::{RouteImpl, Extractors, Delegation};
-use gotham::router::route::dispatch::{DispatcherImpl, new_pipeline_set, finalize_pipeline_set};
+use gotham::router::route::{Delegation, Extractors, RouteImpl};
+use gotham::router::route::dispatch::{finalize_pipeline_set, new_pipeline_set, DispatcherImpl};
 use gotham::router::route::matcher::any::AnyRouteMatcher;
 use gotham::router::tree::TreeBuilder;
-use gotham::router::tree::node::{SegmentType, NodeBuilder};
+use gotham::router::tree::node::{NodeBuilder, SegmentType};
 use gotham::router::response::finalizer::ResponseFinalizerBuilder;
-use gotham::state::{State, FromState};
-use shib_gotham::{Shibbleware, ReceiverFailed, AuthenticatedSession};
+use gotham::state::{FromState, State};
+use shib_gotham::{AuthenticatedSession, ReceiverFailed, Shibbleware};
 
 fn main() {
     set_logging();
-    let addr = "127.0.0.1:7878".parse().unwrap();
-
-    let server = Http::new()
-        .bind(&addr, NewHandlerService::new(router()))
-        .unwrap();
-
-    println!("Listening on http://{}", server.local_addr().unwrap());
-    server.run().unwrap();
+    let addr = "127.0.0.1:7878";
+    println!("Listening for requests at http://{}", addr);
+    gotham::start(addr, router())
 }
 
 fn set_logging() {
     fern::Dispatch::new()
-        .level(LogLevelFilter::Error)
-        .level_for("gotham", log::LogLevelFilter::Trace)
-        .level_for("gotham::state", log::LogLevelFilter::Error)
-        .level_for("todo_session", log::LogLevelFilter::Error)
+        .level(LevelFilter::Error)
+        .level_for("gotham", log::LevelFilter::Trace)
+        .level_for("gotham::state", log::LevelFilter::Error)
+        .level_for("todo_session", log::LevelFilter::Error)
         .chain(std::io::stdout())
         .format(|out, message, record| {
             out.finish(format_args!(
@@ -73,11 +66,9 @@ impl AuthenticatedSession for Session {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct UserAttributes {
-    #[serde(rename = "User-Agent")]
-    user_agent: String,
+    #[serde(rename = "User-Agent")] user_agent: String,
 
-    #[serde(rename = "Accept")]
-    accept: String,
+    #[serde(rename = "Accept")] accept: String,
 }
 
 mod controller {

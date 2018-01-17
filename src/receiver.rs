@@ -2,13 +2,12 @@ use std::io;
 use std::marker::PhantomData;
 use std::panic::RefUnwindSafe;
 use futures::future;
-use hyper::{self, Response, StatusCode, Headers};
+use hyper::{Headers, Response, StatusCode};
 use hyper::header::Location;
 use serde::Deserialize;
-use gotham;
-use gotham::handler::{Handler, NewHandler, HandlerFuture};
+use gotham::handler::{Handler, HandlerFuture, NewHandler};
 use gotham::http::response::create_response;
-use gotham::state::{State, FromState, request_id};
+use gotham::state::{request_id, FromState, State};
 
 use headers::deserialize;
 
@@ -44,7 +43,7 @@ where
 
 trait AttributesTypePhantom<T>: Send + Sync + RefUnwindSafe
 where
-    T: Send
+    T: Send,
 {
 }
 
