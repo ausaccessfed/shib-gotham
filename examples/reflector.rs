@@ -15,14 +15,8 @@ use gotham::pipeline::new_pipeline;
 use gotham::middleware::session::{NewSessionMiddleware, SessionData};
 use gotham::http::response::create_response;
 use gotham::router::Router;
-use gotham::router::request::path::NoopPathExtractor;
-use gotham::router::request::query_string::NoopQueryStringExtractor;
-use gotham::router::route::{Delegation, Extractors, RouteImpl};
-use gotham::router::route::dispatch::{finalize_pipeline_set, new_pipeline_set, DispatcherImpl};
-use gotham::router::route::matcher::any::AnyRouteMatcher;
-use gotham::router::tree::TreeBuilder;
-use gotham::router::tree::node::{NodeBuilder, SegmentType};
-use gotham::router::response::finalizer::ResponseFinalizerBuilder;
+use gotham::router::builder::*;
+use gotham::router::route::dispatch::{finalize_pipeline_set, new_pipeline_set};
 use gotham::state::{FromState, State};
 use shib_gotham::{AuthenticatedSession, ReceiverFailed, Shibbleware};
 
@@ -66,9 +60,11 @@ impl AuthenticatedSession for Session {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct UserAttributes {
-    #[serde(rename = "User-Agent")] user_agent: String,
+    #[serde(rename = "User-Agent")]
+    user_agent: String,
 
-    #[serde(rename = "Accept")] accept: String,
+    #[serde(rename = "Accept")]
+    accept: String,
 }
 
 mod controller {
@@ -157,66 +153,19 @@ fn router() -> Router {
     let default_pipeline_chain = (default, ());
     let protected_pipeline_chain = (protected, (default, ()));
 
-    let mut tree_builder = TreeBuilder::new();
+    let protected_router = build_router(protected_pipeline_chain, pipelines.clone(), |route| {
+        route.get("/attributes").to(controller::attributes);
+    });
 
-    let welcome_route = {
-        let dispatcher = DispatcherImpl::new(
-            || Ok(controller::welcome),
-            default_pipeline_chain,
-            pipelines.clone(),
-        );
+    build_router(default_pipeline_chain, pipelines, |route| {
+        route.get("/").to(controller::welcome);
 
-        RouteImpl::new(
-            AnyRouteMatcher::new(),
-            Box::new(dispatcher),
-            Extractors::<NoopPathExtractor, NoopQueryStringExtractor>::new(),
-            Delegation::Internal,
-        )
-    };
+        route
+            .delegate_without_pipelines("/protected")
+            .to_router(protected_router);
 
-    tree_builder.add_route(Box::new(welcome_route));
-
-    let mut attributes = NodeBuilder::new("attributes", SegmentType::Static);
-    let attributes_route = {
-        let dispatcher = DispatcherImpl::new(
-            || Ok(controller::attributes),
-            protected_pipeline_chain,
-            pipelines.clone(),
-        );
-
-        RouteImpl::new(
-            AnyRouteMatcher::new(),
-            Box::new(dispatcher),
-            Extractors::<NoopPathExtractor, NoopQueryStringExtractor>::new(),
-            Delegation::Internal,
-        )
-    };
-
-    attributes.add_route(Box::new(attributes_route));
-    tree_builder.add_child(attributes);
-
-    let mut auth = NodeBuilder::new("auth", SegmentType::Static);
-
-    let shib_route = {
-        let dispatcher = DispatcherImpl::new(
-            shib_gotham::auth_router(receive_subject),
-            default_pipeline_chain,
-            pipelines.clone(),
-        );
-
-        RouteImpl::new(
-            AnyRouteMatcher::new(),
-            Box::new(dispatcher),
-            Extractors::<NoopPathExtractor, NoopQueryStringExtractor>::new(),
-            Delegation::External,
-        )
-    };
-    auth.add_route(Box::new(shib_route));
-
-    tree_builder.add_child(auth);
-
-    let tree = tree_builder.finalize();
-    let response_finalizer = ResponseFinalizerBuilder::new().finalize();
-
-    Router::new(tree, response_finalizer)
+        route
+            .delegate("/auth")
+            .to_router(shib_gotham::auth_router(receive_subject));
+    })
 }

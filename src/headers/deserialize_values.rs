@@ -1,4 +1,4 @@
-use serde::de::{Deserializer, DeserializeSeed, Visitor, EnumAccess, VariantAccess, SeqAccess};
+use serde::de::{DeserializeSeed, Deserializer, EnumAccess, SeqAccess, VariantAccess, Visitor};
 
 use std::error::Error;
 use std::vec::IntoIter;
@@ -281,7 +281,9 @@ impl MultiValued {
         });
 
         let values: Vec<String> = iter.map(|s| s.replace(r"\;", ";")).collect();
-        MultiValued { value_iter: values.into_iter() }
+        MultiValued {
+            value_iter: values.into_iter(),
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub trait AuthenticatedSession
     : Default + Serialize + for<'de> Deserialize<'de> + 'static {

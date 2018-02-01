@@ -7,17 +7,17 @@ use hyper::{StatusCode, Uri};
 use hyper::header::Location;
 use percent_encoding::{utf8_percent_encode, QUERY_ENCODE_SET};
 
-use gotham::state::{State, FromState};
+use gotham::state::{FromState, State};
 use gotham::handler::HandlerFuture;
 use gotham::http::response::create_response;
-use gotham::middleware::{NewMiddleware, Middleware};
+use gotham::middleware::{Middleware, NewMiddleware};
 use gotham::middleware::session::SessionData;
 
 use authenticated_session::AuthenticatedSession;
 
 trait SessionTypePhantom<T>: Send + Sync + RefUnwindSafe
 where
-    T: Send
+    T: Send,
 {
 }
 
@@ -97,8 +97,7 @@ where
 
                 response.headers_mut().set(Location::new(format!(
                     "{}?return_path={}",
-                    self.auth_login_location,
-                    encoded_return_path
+                    self.auth_login_location, encoded_return_path
                 )));
             }
 

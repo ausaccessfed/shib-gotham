@@ -26,7 +26,9 @@ impl de::Error for HeadersDeserializationError {
     where
         T: fmt::Display,
     {
-        HeadersDeserializationError::GeneralError { msg: format!("{}", t) }
+        HeadersDeserializationError::GeneralError {
+            msg: format!("{}", t),
+        }
     }
 }
 
