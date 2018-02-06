@@ -22,6 +22,6 @@ fern = "*"
 chrono = "*"
 
 [patch.crates-io]
-gotham = { git = "https://github.com/gotham-rs/gotham", branch = "serde-extractors" }
-gotham_derive = { git = "https://github.com/gotham-rs/gotham", branch = "serde-extractors" }
+gotham = { git = "https://github.com/gotham-rs/gotham" }
+gotham_derive = { git = "https://github.com/gotham-rs/gotham" }
 
