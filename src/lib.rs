@@ -1,17 +1,15 @@
 //! Shibboleth SP authentication plugin for Gotham web applications
 
 extern crate futures;
-extern crate hyper;
 extern crate gotham;
 #[macro_use]
 extern crate gotham_derive;
-extern crate serde;
+extern crate hyper;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate percent_encoding;
-
-#[cfg(test)]
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 

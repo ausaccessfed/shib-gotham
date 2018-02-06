@@ -1,8 +1,8 @@
 use std::str;
 use std::collections::BTreeMap;
 
-use serde::de::{Deserializer, Visitor, MapAccess, SeqAccess, DeserializeSeed};
-use hyper::header::{Headers, HeaderView};
+use serde::de::{DeserializeSeed, Deserializer, MapAccess, SeqAccess, Visitor};
+use hyper::header::{HeaderView, Headers};
 
 use headers::HeadersDeserializationError;
 use headers::deserialize_values::DeserializeValue;
@@ -98,7 +98,9 @@ impl<'de, 'a: 'de> Deserializer<'de> for DeserializeHeaders<'a> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_seq(TupleAccess { headers: self.headers })
+        visitor.visit_seq(TupleAccess {
+            headers: self.headers,
+        })
     }
 
     fn deserialize_tuple_struct<V>(
@@ -199,8 +201,11 @@ impl<'de, 'a: 'de> Deserializer<'de> for DeserializeHeaders<'a> {
         deserialize_option,
         "unsuitable type (Option<_>) as top-level user attributes type"
     );
-    reject!(deserialize_enum, "unsuitable type (enum) as top-level user attributes type",
-            (_name: &'static str, _variants: &'static [&'static str]));
+    reject!(
+        deserialize_enum,
+        "unsuitable type (enum) as top-level user attributes type",
+        (_name: &'static str, _variants: &'static [&'static str])
+    );
 
     reject!(
         deserialize_seq,
@@ -229,8 +234,7 @@ where
 
 impl<'de, 'a: 'de, Iter> MapAccess<'de> for AccessHeaders<'a, Iter>
 where
-    Iter: Iterator<Item = HeaderView<'a>>
-        + 'a,
+    Iter: Iterator<Item = HeaderView<'a>> + 'a,
 {
     type Error = HeadersDeserializationError;
 

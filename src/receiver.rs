@@ -47,7 +47,7 @@ where
 {
 }
 
-#[derive(StateData, StaticResponseExtender, QueryStringExtractor)]
+#[derive(Deserialize, StateData, StaticResponseExtender)]
 pub(crate) struct ReturnInfo {
     return_path: Option<String>,
 }
