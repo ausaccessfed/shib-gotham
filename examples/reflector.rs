@@ -12,11 +12,11 @@ extern crate shib_gotham;
 use log::LevelFilter;
 use hyper::{Response, StatusCode};
 use gotham::pipeline::new_pipeline;
+use gotham::pipeline::set::*;
 use gotham::middleware::session::{NewSessionMiddleware, SessionData};
 use gotham::http::response::create_response;
 use gotham::router::Router;
 use gotham::router::builder::*;
-use gotham::router::route::dispatch::{finalize_pipeline_set, new_pipeline_set};
 use gotham::state::{FromState, State};
 use shib_gotham::{AuthenticatedSession, ReceiverFailed, Shibbleware};
 
