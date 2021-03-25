@@ -1,10 +1,9 @@
 mod deserialize_headers;
 mod deserialize_values;
 
-use std::{error, fmt};
-use std::error::Error;
-use serde::de::{self, Deserialize};
 use hyper::Headers;
+use serde::de::{self, Deserialize};
+use std::{error, fmt};
 
 #[derive(Debug)]
 pub(crate) enum HeadersDeserializationError {
@@ -34,9 +33,7 @@ impl de::Error for HeadersDeserializationError {
 
 impl fmt::Display for HeadersDeserializationError {
     fn fmt(&self, out: &mut fmt::Formatter) -> fmt::Result {
-        out.write_str("HeadersDeserializationError(")?;
-        out.write_str(self.description())?;
-        out.write_str(")")
+        fmt::Debug::fmt(self, out)
     }
 }
 
@@ -55,8 +52,8 @@ mod tests {
 
     use std::collections::HashMap;
 
-    use serde_bytes;
     use hyper::Headers;
+    use serde_bytes;
 
     #[test]
     fn test_deserialize_unit() {

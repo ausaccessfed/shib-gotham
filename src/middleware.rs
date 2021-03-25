@@ -3,15 +3,15 @@ use std::marker::PhantomData;
 use std::panic::RefUnwindSafe;
 
 use futures::future;
-use hyper::{StatusCode, Uri};
 use hyper::header::Location;
+use hyper::{StatusCode, Uri};
 use percent_encoding::{utf8_percent_encode, QUERY_ENCODE_SET};
 
-use gotham::state::{FromState, State};
 use gotham::handler::HandlerFuture;
 use gotham::http::response::create_response;
-use gotham::middleware::{Middleware, NewMiddleware};
 use gotham::middleware::session::SessionData;
+use gotham::middleware::{Middleware, NewMiddleware};
+use gotham::state::{FromState, State};
 
 use authenticated_session::AuthenticatedSession;
 
@@ -27,7 +27,7 @@ where
     T: AuthenticatedSession,
 {
     auth_login_location: &'static str,
-    phantom: PhantomData<SessionTypePhantom<T>>,
+    phantom: PhantomData<dyn SessionTypePhantom<T>>,
 }
 
 impl<T> Shibbleware<T>
@@ -42,11 +42,7 @@ where
     }
 }
 
-impl<T> Copy for Shibbleware<T>
-where
-    T: AuthenticatedSession,
-{
-}
+impl<T> Copy for Shibbleware<T> where T: AuthenticatedSession {}
 
 impl<T> Clone for Shibbleware<T>
 where
