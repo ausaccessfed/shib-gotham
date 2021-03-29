@@ -1,13 +1,13 @@
-use std::io;
-use std::marker::PhantomData;
-use std::panic::RefUnwindSafe;
 use futures::future;
-use hyper::{Headers, Response, StatusCode};
-use hyper::header::Location;
-use serde::Deserialize;
 use gotham::handler::{Handler, HandlerFuture, NewHandler};
 use gotham::http::response::create_response;
 use gotham::state::{request_id, FromState, State};
+use hyper::header::Location;
+use hyper::{Headers, Response, StatusCode};
+use serde::Deserialize;
+use std::io;
+use std::marker::PhantomData;
+use std::panic::RefUnwindSafe;
 
 use headers::deserialize;
 
@@ -58,7 +58,7 @@ where
     A: for<'de> Deserialize<'de> + 'static,
 {
     r: R,
-    phantom: PhantomData<AttributesTypePhantom<A>>,
+    phantom: PhantomData<dyn AttributesTypePhantom<A>>,
 }
 
 impl<A, R> LoginHandler<A, R>
